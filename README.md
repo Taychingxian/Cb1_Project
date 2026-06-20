@@ -16,8 +16,12 @@ The app trains a small stacked ensemble on the Frankfurt Hospital diabetes datas
 sliders to receive:
 
 - A **risk gauge** showing the predicted probability and a Low / Moderate / High label.
-- A **top contributing factors** chart indicating which inputs push the prediction
-  toward higher (red) or lower (blue) risk.
+- A **contributing factors** chart, in plain language, showing which inputs push the
+  risk up (red, right) or down (green, left), with the user's own value on each bar.
+- A **"Why did I get this result?"** explanation that adapts to the risk level and
+  names the values working against the user most.
+- **Personalized prevention tips** for the factors raising the user's risk, plus
+  general advice for everyone on how to lower diabetes risk.
 
 ### Pipeline
 
@@ -47,8 +51,11 @@ Explainability layer (SHAP-style local contributions)
 - **Missing-value handling** — biologically impossible zeros (Glucose, BloodPressure,
   SkinThickness, Insulin, BMI) are treated as missing and imputed with the column median.
 - **Cached training** — the model trains once per session (`@st.cache_resource`).
-- **Interactive UI** — sliders for all eight features, a Plotly risk gauge, and a
-  contributing-factors bar chart.
+- **Interactive UI** — sliders for all eight features (with helpful tooltips, e.g.
+  blood pressure is the *lower* number of a reading), a Plotly risk gauge, and a
+  plain-language contributing-factors chart.
+- **Plain-language explanations** — a "Why did I get this result?" summary plus
+  personalized and general tips on how to lower diabetes risk.
 - **Model metrics** — AUC, accuracy, and training sample count shown in the header.
 
 ---
@@ -59,7 +66,7 @@ Explainability layer (SHAP-style local contributions)
 |---|---|---|
 | Pregnancies | 0–17 | Number of times pregnant |
 | Glucose | 50–200 | Plasma glucose (mg/dL) |
-| BloodPressure | 40–130 | Diastolic blood pressure (mm Hg) |
+| BloodPressure | 40–130 | Diastolic blood pressure — the **lower** number in a reading, e.g. the 80 in 120/80 (mm Hg) |
 | SkinThickness | 0–99 | Triceps skin fold thickness (mm) |
 | Insulin | 0–846 | 2-hour serum insulin (mu U/ml) |
 | BMI | 15.0–60.0 | Body mass index (kg/m²) |
@@ -120,6 +127,10 @@ Cb1_Project/
 4. **Explainability** — `local_contributions()` approximates each feature's local
    effect by combining its global Random Forest importance with how far the user's
    value sits from the population mean (in standard-deviation units).
+5. **Explanation & guidance** — the app turns those contributions into a plain-language
+   "Why did I get this result?" summary (naming the biggest factors), then shows
+   prevention tips: targeted advice for the factors raising the user's risk and a
+   general healthy-living checklist.
 
 ---
 
