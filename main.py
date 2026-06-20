@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 import streamlit as st
 import plotly.graph_objects as go
 
@@ -36,20 +37,38 @@ FEATURE_NAMES = [f[0] for f in FEATURES]
 # ----------------------------------------------------------------------------
 # Data + model (cached so it only trains once)
 # ----------------------------------------------------------------------------
+LOCAL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frankfurt_diabetes.csv")
+REMOTE_CSV = (
+    "https://raw.githubusercontent.com/ibrahimuhammad/"
+    "diabetes_prediction/master/diabetes.csv"
+)
+# Columns where a 0 is biologically impossible and actually means "missing".
+ZERO_AS_MISSING = ["Glucose", "BloodPressure", "SkinThickness", "Insulin", "BMI"]
+
+
+def clean_zeros(df):
+    """Treat impossible zeros as missing and impute with the column median."""
+    df = df.copy()
+    for c in ZERO_AS_MISSING:
+        df[c] = df[c].replace(0, np.nan)
+        df[c] = df[c].fillna(df[c].median())
+    return df
+
+
 @st.cache_data(show_spinner=False)
 def load_data():
-    """Load PIMA dataset; fall back to a synthetic dataset if offline."""
-    url = (
-        "https://raw.githubusercontent.com/jbrownlee/Datasets/master/"
-        "pima-indians-diabetes.data.csv"
-    )
-    cols = FEATURE_NAMES + ["Outcome"]
-    try:
-        df = pd.read_csv(url, header=None, names=cols)
-        source = "PIMA Indians Diabetes dataset"
-    except Exception:
-        df = synth_data()
-        source = "synthetic fallback dataset (offline)"
+    """Load Frankfurt Hospital dataset: bundled CSV first, then remote, then synthetic."""
+    if os.path.exists(LOCAL_CSV):
+        df = pd.read_csv(LOCAL_CSV)
+        source = "Frankfurt Hospital diabetes dataset (2,000 patients, bundled)"
+    else:
+        try:
+            df = pd.read_csv(REMOTE_CSV)
+            source = "Frankfurt Hospital diabetes dataset (2,000 patients, downloaded)"
+        except Exception:
+            df = synth_data()
+            source = "synthetic fallback dataset (offline)"
+    df = clean_zeros(df)
     return df, source
 
 
