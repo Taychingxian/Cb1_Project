@@ -11,9 +11,9 @@ SHAP-style explainability layer.
 
 ## Overview
 
-The app trains a small stacked ensemble on the PIMA Indians Diabetes dataset
-(with a synthetic fallback if no internet is available), then lets a user enter
-health parameters through interactive sliders to receive:
+The app trains a small stacked ensemble on the Frankfurt Hospital diabetes dataset
+(2,000 patients), then lets a user enter health parameters through interactive
+sliders to receive:
 
 - A **risk gauge** showing the predicted probability and a Low / Moderate / High label.
 - A **top contributing factors** chart indicating which inputs push the prediction
@@ -42,8 +42,10 @@ Explainability layer (SHAP-style local contributions)
 
 - **Hybrid stacked ensemble** — Random Forest + Gradient Boosting + SVM, combined
   by a Logistic Regression meta-learner (`StackingClassifier`).
-- **Offline-safe** — automatically falls back to a 2,000-row synthetic dataset if the
-  PIMA dataset can't be downloaded.
+- **Resilient data loading** — uses a bundled local CSV first, falls back to a remote
+  download, then to a 2,000-row synthetic dataset if neither is available.
+- **Missing-value handling** — biologically impossible zeros (Glucose, BloodPressure,
+  SkinThickness, Insulin, BMI) are treated as missing and imputed with the column median.
 - **Cached training** — the model trains once per session (`@st.cache_resource`).
 - **Interactive UI** — sliders for all eight features, a Plotly risk gauge, and a
   contributing-factors bar chart.
@@ -97,8 +99,9 @@ parameters on the left and click **Predict Risk**.
 
 ```
 Cb1_Project/
-├── main.py            # Streamlit app + model training + UI
-├── requirements.txt   # Python dependencies
+├── main.py                  # Streamlit app + model training + UI
+├── frankfurt_diabetes.csv   # Bundled dataset (optional; auto-downloaded if absent)
+├── requirements.txt         # Python dependencies
 └── README.md
 ```
 
@@ -106,9 +109,10 @@ Cb1_Project/
 
 ## How It Works
 
-1. **Data** — `load_data()` fetches the PIMA dataset from a public mirror; if that
-   fails, `synth_data()` generates a plausible synthetic dataset with a latent
-   risk signal driven by glucose, BMI, age, and pedigree function.
+1. **Data** — `load_data()` loads the bundled `frankfurt_diabetes.csv` if present,
+   otherwise downloads it from a public mirror; if both fail, `synth_data()` generates
+   a plausible synthetic dataset with a latent risk signal driven by glucose, BMI, age,
+   and pedigree function. `clean_zeros()` then imputes impossible zeros with the column median.
 2. **Training** — features are scaled, then fed into the stacked ensemble with 5-fold
    cross-validation for the meta-learner. AUC and accuracy are evaluated on a 20% hold-out.
 3. **Prediction** — user inputs are passed through the same pipeline to produce a
@@ -122,8 +126,9 @@ Cb1_Project/
 ## Notes & Limitations
 
 - This is a **prototype / mock-up**, not a validated diagnostic tool.
-- The PIMA dataset uses `0` to encode some missing values (e.g. Insulin,
-  SkinThickness); these are not imputed in this prototype.
+- Some columns use `0` to encode missing values (e.g. Insulin, SkinThickness); these
+  are imputed with the column median via `clean_zeros()`, but median imputation is a
+  simplification and may not reflect true patient values.
 - The contributing-factors chart is a **SHAP-style approximation**, not exact SHAP
   values. Feature importances are unsigned, so the displayed direction reflects only
   whether a value is above/below the population mean — interpret it as indicative.
