@@ -218,26 +218,59 @@ with right:
         st.plotly_chart(gauge, use_container_width=True)
 
         # ---- contributing factors ----
-        st.subheader("Top Contributing Factors")
+        st.subheader("What's affecting this result?")
+
         contribs = local_contributions(model, row, df, importances)
-        items = sorted(contribs.items(), key=lambda kv: abs(kv[1]), reverse=True)[:6]
-        labels = [k for k, _ in items][::-1]
-        values = [v for _, v in items][::-1]
-        bar_colors = ["#e74c3c" if v > 0 else "#3498db" for v in values]
+        ranked = sorted(contribs.items(), key=lambda kv: abs(kv[1]), reverse=True)[:6]
+
+        # Plain-language summary of the single biggest driver.
+        top_name, top_val = ranked[0]
+        if top_val > 0:
+            st.markdown(
+                f"🔺 **{top_name}** is pushing this person's risk **up** the most."
+            )
+        else:
+            st.markdown(
+                f"🔻 **{top_name}** is helping keep this person's risk **down** the most."
+            )
+
+        # Normalise each factor to a 0–100% "impact strength" so the chart is
+        # readable instead of showing tiny abstract decimals.
+        max_abs = max(abs(v) for _, v in ranked) or 1.0
+        ranked = ranked[::-1]  # strongest on top in a horizontal bar
+
+        labels, values, texts, colors = [], [], [], []
+        for name, v in ranked:
+            values.append(v / max_abs * 100)
+            labels.append(f"{name}  ({user_vals[name]:g})")
+            if v > 0:
+                colors.append("#e74c3c")        # red = raises risk
+                texts.append("raises risk ▶")
+            else:
+                colors.append("#27ae60")        # green = lowers risk
+                texts.append("◀ lowers risk")
 
         bar = go.Figure(go.Bar(
             x=values, y=labels, orientation="h",
-            marker_color=bar_colors,
+            marker_color=colors,
+            text=texts, textposition="outside", cliponaxis=False,
         ))
         bar.update_layout(
-            height=320, margin=dict(t=10, b=10, l=10, r=10),
-            xaxis_title="← lowers risk      raises risk →",
+            height=340, margin=dict(t=10, b=40, l=10, r=10),
+            xaxis=dict(
+                title="← Lowers risk          Raises risk →",
+                range=[-170, 170],
+                zeroline=True, zerolinecolor="#888", zerolinewidth=2,
+                showticklabels=False,
+            ),
         )
         st.plotly_chart(bar, use_container_width=True)
 
         st.info(
-            "Red bars push the prediction toward higher risk; blue bars toward "
-            "lower risk. This is a SHAP-style approximation for the prototype."
+            "Each bar is one health value (the number in brackets is what you "
+            "entered). **Red bars on the right push the risk up; green bars on "
+            "the left bring it down** — and longer bars matter more. This is a "
+            "simplified explanation for the prototype."
         )
     else:
         st.write("Set the parameters on the left and click **Predict Risk**.")
