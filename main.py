@@ -24,7 +24,7 @@ st.set_page_config(
 FEATURES = [
     ("Pregnancies", 0, 17, 1, "Number of times pregnant"),
     ("Glucose", 50, 200, 117, "Plasma glucose (mg/dL)"),
-    ("BloodPressure", 40, 130, 72, "Diastolic blood pressure (mm Hg)"),
+    ("BloodPressure", 40, 130, 72, "Diastolic blood pressure — the LOWER number in a reading, e.g. the 80 in 120/80 (mm Hg)"),
     ("SkinThickness", 0, 99, 23, "Triceps skin fold thickness (mm)"),
     ("Insulin", 0, 846, 30, "2-Hour serum insulin (mu U/ml)"),
     ("BMI", 15.0, 60.0, 32.0, "Body mass index (kg/m²)"),
@@ -271,6 +271,76 @@ with right:
             "entered). **Red bars on the right push the risk up; green bars on "
             "the left bring it down** — and longer bars matter more. This is a "
             "simplified explanation for the prototype."
+        )
+
+        # ---- Why this result? ----
+        st.subheader("Why did I get this result?")
+        raising = [name for name, v in contribs.items() if v > 0]
+        raising_sorted = sorted(
+            raising, key=lambda n: contribs[n], reverse=True
+        )
+        if level == "LOW":
+            why_intro = (
+                "Your inputs look mostly **healthy**, so the model estimates a "
+                "**low** chance of diabetes."
+            )
+        elif level == "MODERATE":
+            why_intro = (
+                "Some of your health values are higher than the healthy range, "
+                "so the model estimates a **moderate** chance of diabetes."
+            )
+        else:
+            why_intro = (
+                "Several of your health values are well above the healthy range, "
+                "so the model estimates a **high** chance of diabetes."
+            )
+        if raising_sorted:
+            factor_list = ", ".join(raising_sorted[:3])
+            why_intro += (
+                f"\n\nThe values working against you most right now are: "
+                f"**{factor_list}**."
+            )
+        st.markdown(why_intro)
+        st.caption(
+            "The result is a statistical estimate from past patient data — "
+            "not a diagnosis. Only a doctor can confirm diabetes."
+        )
+
+        # ---- How to lower your risk ----
+        st.subheader("How to lower your risk / prevent diabetes")
+
+        TIPS = {
+            "Glucose": "🍞 **Cut back on sugar and refined carbs** (white rice, white bread, sugary drinks) to help lower blood sugar.",
+            "BMI": "🏃 **Aim for a healthy weight** — even losing 5–7% of body weight noticeably lowers diabetes risk.",
+            "BloodPressure": "🧂 **Keep blood pressure in check** — less salt, less stress, and regular check-ups.",
+            "Insulin": "🥗 **Eat balanced meals** with fibre and protein so your body manages insulin better.",
+            "Age": "📅 **Age can't be changed**, but risk from it can be offset by staying active and eating well.",
+            "Pregnancies": "🤰 **Pregnancy history can't be changed**, but regular blood-sugar checks help catch problems early.",
+            "SkinThickness": "💪 **Build muscle and stay active** — exercise improves how your body handles sugar.",
+            "DiabetesPedigreeFunction": "👪 **Family history can't be changed**, so screen earlier and keep other habits healthy.",
+        }
+
+        # Show tips for the factors currently raising this person's risk first.
+        shown = raising_sorted[:4] if raising_sorted else []
+        if shown:
+            st.markdown("**Based on your inputs, focus on these:**")
+            for name in shown:
+                st.markdown("- " + TIPS[name])
+
+        with st.expander("General tips for everyone"):
+            st.markdown(
+                """
+                - 🥦 **Eat more vegetables, fruit and whole grains**; cut sugary drinks.
+                - 🏃 **Move at least 30 minutes a day** (brisk walking counts).
+                - ⚖️ **Maintain a healthy weight.**
+                - 🚭 **Don't smoke** and limit alcohol.
+                - 😴 **Sleep well and manage stress.**
+                - 🩺 **Get regular check-ups** so high blood sugar is caught early.
+                """
+            )
+        st.caption(
+            "General wellness guidance only — always talk to a healthcare "
+            "professional before making changes."
         )
     else:
         st.write("Set the parameters on the left and click **Predict Risk**.")
